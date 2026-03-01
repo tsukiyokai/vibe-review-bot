@@ -64,7 +64,7 @@ python3 ai_reviewer.py --repo ops-transformer --pr 2071   # 其他仓库
 审查结果默认输出到终端，可通过以下标志控制：
 
 ```bash
-python3 ai_reviewer.py --pr 1150 --save              # 保存到log/
+python3 ai_reviewer.py --pr 1150 --save               # 保存到log/
 python3 ai_reviewer.py --pr 1150 --comment            # 发布评论到GitCode PR
 python3 ai_reviewer.py --pr 1150 --comment --force    # 强制重审（忽略"已审查过"）
 ```
