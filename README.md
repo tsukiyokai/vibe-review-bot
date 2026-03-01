@@ -10,19 +10,19 @@ Slack：[#ai-code-review](https://claude-rfj1883.slack.com/archives/C0AHLUT5E0M)
 ## 工作流程
 
 ```
-                          review_loop.sh (每60s轮询)
+                         review_loop.sh (poll 60s)
                                   |
                                   v
-+-----------+    GitCode API    +----------------+    claude -p    +------------------+
-|           | ----------------> |                | -------------> |                  |
-| GitCode   |   拉取PR diff     | ai_reviewer.py |   调用skill    | Claude Code      |
-| PR / Push |                   |                | <------------- | codereview skill |
-|           |                   +----------------+   检视报告      +------------------+
-+-----------+                     |    |    |                        |
-                                  |    |    |                  读取上下文
-                                  v    v    v                       |
-                              终端  log/  GitCode              本地仓库
-                              输出  保存  PR评论            ~/repo/cann/*
++-----------+   GitCode API   +----------------+   claude -p   +------------------+
+|           | --------------> |                | ------------> |                  |
+| GitCode   |   fetch diff    | ai_reviewer.py | invoke skill  | Claude Code      |
+| PR / Push |                 |                | <------------ | codereview skill |
+|           |                 +----------------+    report     +------------------+
++-----------+                    |    |    |                       |
+                                 |    |    |                  read context
+                                 v    v    v                      |
+                             terminal log/ GitCode           local repo
+                              stdout  save PR comment      ~/repo/cann/*
 ```
 
 `review_loop.sh`通过对比HEAD SHA判断变更，无变化时仅消耗1次API调用。
@@ -52,11 +52,11 @@ python3 ai_reviewer.py --repo hcomm --pr 1150
 ### 审查PR
 
 ```bash
-python3 ai_reviewer.py                              # 最近3个open PR
-python3 ai_reviewer.py --pr 1150 1144               # 指定PR
-python3 ai_reviewer.py --author lilin_137 -n 0      # 某用户的全部open PR
-python3 ai_reviewer.py --state merged --count 3     # 已合并的PR
-python3 ai_reviewer.py --repo ops-transformer --pr 2071  # 其他仓库
+python3 ai_reviewer.py                                    # 最近3个open PR
+python3 ai_reviewer.py --pr 1150 1144                     # 指定PR
+python3 ai_reviewer.py --author lilin_137 -n 0            # 某用户的全部open PR
+python3 ai_reviewer.py --state merged --count 3           # 已合并的PR
+python3 ai_reviewer.py --repo ops-transformer --pr 2071   # 其他仓库
 ```
 
 ### 输出控制
@@ -64,9 +64,9 @@ python3 ai_reviewer.py --repo ops-transformer --pr 2071  # 其他仓库
 审查结果默认输出到终端，可通过以下标志控制：
 
 ```bash
-python3 ai_reviewer.py --pr 1150 --save             # 保存到 log/
-python3 ai_reviewer.py --pr 1150 --comment           # 发布评论到GitCode PR
-python3 ai_reviewer.py --pr 1150 --comment --force   # 强制重审（忽略"已审查过"）
+python3 ai_reviewer.py --pr 1150 --save              # 保存到log/
+python3 ai_reviewer.py --pr 1150 --comment            # 发布评论到GitCode PR
+python3 ai_reviewer.py --pr 1150 --comment --force    # 强制重审（忽略"已审查过"）
 ```
 
 ### 审查本地文件
@@ -89,9 +89,9 @@ bash review_loop.sh $GITCODE_TOKEN 60 hcomm
 ### 统计与追踪
 
 ```bash
-python3 ai_reviewer.py --stats --days 90    # 采纳率统计
-python3 ai_reviewer.py --track --pr 1150    # 追踪单个PR的检视意见
-python3 ai_reviewer.py --import-logs        # 导入历史审查日志到追踪DB
+python3 ai_reviewer.py --stats --days 90     # 采纳率统计
+python3 ai_reviewer.py --track --pr 1150     # 追踪单个PR的检视意见
+python3 ai_reviewer.py --import-logs         # 导入历史审查日志到追踪DB
 ```
 
 选项可组合：`--author`按用户筛选，`--count`/`-n`限制数量，`--state`筛选PR状态，`--dry-run`只拉取不审查。
