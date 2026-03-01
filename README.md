@@ -37,8 +37,7 @@ git clone https://github.com/tsukiyokai/vibereview.git
 cd vibereview
 
 # 2. 安装codereview skill（软链接到Claude Code的skills目录）
-mkdir -p ~/.claude/skills
-ln -s "$(pwd)/skill/codereview" ~/.claude/skills/codereview
+bash setup.sh
 
 # 3. 设置GitCode个人访问令牌
 export GITCODE_TOKEN=your_token
