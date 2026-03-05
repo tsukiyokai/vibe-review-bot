@@ -20,7 +20,7 @@ CACHE_FILE="/tmp/.review_loop_${OWNER}_${REPO}_shas"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEAM_FILE="$SCRIPT_DIR/team.txt"
 
-# 从 team.txt 提取 gitcode 账号（第三列，跳过标题行）
+# 从 team.txt 提取 gitcode 账号（最后一列，跳过标题行）
 TEAM_ACCOUNTS=$(awk 'NR>1 {print $NF}' "$TEAM_FILE" | sort | paste -sd'|' -)
 
 while true; do

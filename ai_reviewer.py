@@ -124,7 +124,7 @@ MAX_PARALLEL_REVIEWS = 4
 MAX_DIR_FILES = 20
 # 审查结果最短有效长度（低于此值视为无效输出，触发重试）
 MIN_REVIEW_CHARS = 500
-# 小组人员名单（姓名 工号 gitcode 账号，每行一人，首行为标题）
+# 小组人员名单（姓名 gitcode 账号，每行一人，首行为标题）
 TEAM_FILE = SCRIPT_DIR / "team.txt"
 # 审查结果日志目录
 LOG_DIR = SCRIPT_DIR / "log"
@@ -870,8 +870,8 @@ def fetch_prs_by_authors(repo: RepoConfig, token: str, authors: list, count: int
 def load_team_members(filepath: Path = TEAM_FILE) -> tuple[list[str], dict[str, str]]:
     """从 team.txt 读取小组成员的 gitcode 账号列表。
 
-    文件格式：每行 '姓名 工号 gitcode 账号'，首行为标题行。
-    返回 (账号列表, {账号："姓名 工号"} 映射)。账号去重保序。
+    文件格式：每行 '姓名 gitcode 账号'，首行为标题行。
+    返回 (账号列表, {账号：姓名} 映射)。账号去重保序。
     """
     if not filepath.exists():
         print(f"  {_fail(f'人员名单不存在：{filepath}')}")
@@ -886,9 +886,9 @@ def load_team_members(filepath: Path = TEAM_FILE) -> tuple[list[str], dict[str, 
         if not line or line.startswith("#"):
             continue
         parts = line.split()
-        if len(parts) >= 3:
+        if len(parts) >= 2:
             account = parts[-1]  # 最后一列是 gitcode 账号
-            info_map[account] = f"{parts[0]} {parts[1]}"
+            info_map[account] = parts[0]
             accounts.append(account)
         elif len(parts) == 1:
             accounts.append(parts[0])   # 只有账号的简略格式
