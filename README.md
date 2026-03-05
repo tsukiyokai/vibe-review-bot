@@ -15,19 +15,9 @@ Slack：[#vibereview](https://claude-rfj1883.slack.com/archives/C0AHLUT5E0M)
 
 ### 案例
 
-提出400+检视意见，部分PR如下：
+累计输出400+检视意见，部分如下所示：
 
-1. https://gitcode.com/cann/hcomm/merge_requests/216?ref=&did=843d9c3470b72be3a38c4640ff06eb556eb8c78e#tid-164023609
-2. https://gitcode.com/cann/hcomm/merge_requests/591?ref=&did=214b2ca0d32a3447b58098d4d020f1bc9077a773#tid-164023154
-3. https://gitcode.com/cann/hcomm/merge_requests/633?ref=&did=a262afc23add2ef7f6db59f58dcafebe0ea91f99#tid-164022216
-4. https://gitcode.com/cann/hcomm/merge_requests/631?ref=&did=fff17f2eb24a383aa9a8e98f49462fb5fda50016#tid-164021674
-5. https://gitcode.com/cann/hcomm/merge_requests/574?ref=&did=98738dbdd3cc247e081f2216cae67625ef401c12#tid-164020531
-6. https://gitcode.com/cann/hcomm/merge_requests/652?ref=&did=b0a614c2fca2e40ba663e7b11c7934e2ade21516#tid-164020494
-7. https://gitcode.com/cann/hcomm/merge_requests/512?ref=&did=79391aeafdbf42685eb660c31574641a7e41ad13#tid-164018411
-8. https://gitcode.com/cann/hcomm/merge_requests/469?ref=&did=0804f30b854cf5941b80ed68b1cf2e741f77b39f#tid-164018089
-9. https://gitcode.com/cann/hcomm/merge_requests/304?ref=&did=a463be7322a438d7c512324d2d420dfa1458f67c#tid-164017505
-10. https://gitcode.com/cann/hcomm/merge_requests/367?ref=&did=3c9b7fbdb0456df12a44708f94ede1bd28c7b758#tid-164016861
-11. https://gitcode.com/cann/hcomm/merge_requests/653?ref=&did=ec92e6ecaa4ce195fe92cc8b74c5f08b35b27d8b#tid-164016463
+![findings](./assets/screenshot_findings.png)
 
 ### 统计
 
@@ -41,7 +31,7 @@ Slack：[#vibereview](https://claude-rfj1883.slack.com/archives/C0AHLUT5E0M)
 |TPS|每日检视意见数量|
 |Total Latency|Time To Merge|
 
-- Reviewer A是这个仓库最活跃的人类reviewer，在最新170个PR（50个已合并+120个open）的所有实质性检视意见（排除bot、AI review、PR作者自评、以及lgtm/approve/compile等纯命令）中，他贡献了全部人类检视意见的约25%（远超第二名），共提了54条实质性检视意见，日均14条，2月27日一天就提了35条，可能是集中review了一批PR。所有人类reviewer整体的中位响应时间为1.9天。
+- LL是Hcomm仓最活跃的人类reviewer，在最新170个PR（50个已合并+120个open）的所有实质性检视意见（排除bot、AI review、PR作者自评、以及lgtm/approve/compile等纯命令）中，他贡献了全部人类检视意见的约25%（远超第二名），共提了54条实质性检视意见，日均14条，2月27日一天就提了35条，可能是集中review了一批PR。所有人类reviewer整体的中位响应时间为1.9天。
 - 作为对比：3月4日，AI审查了名单里的64个PR，提出193条检视意见。单PR从开始审查到评论发出的中位数6m14s，均值6m19s，57%的PR在5-10分钟内完成，25%在3-5分钟，最快1分钟（小PR），最慢15分钟（大PR），端到端时延（开发者push到收到评论）还要加上轮询间隔平均感知延迟\~30s（60s轮询周期）和Step1获取PR列表\~5s。所以典型场景是开发者push代码后约7分钟收到AI检视评论。冷启动时（积压多个PR）最长一轮耗时51分钟。
 
 ### 用户评价
@@ -259,7 +249,7 @@ log/                     # 检视产出，按仓库和维度组织：
 - [ ] 与CMC合作形成一套检视意见反馈skill的方法论
 - [ ] 采纳率算法优化（存储上使用了Python标准库的sqlite3模块，主要用于PR审查的跟踪数据库（TRACKING_DB）；算法上因为diff追踪算法还没完全实现出来所以下图数据不算数）
 
-  ![image-20260304165223897](./assets/image-20260304165223897.png)
+  ![screenshot_stats](./assets/screenshot_stats.png)
 
 - [ ] 切到内部模型上跑
 
@@ -275,7 +265,7 @@ log/                     # 检视产出，按仓库和维度组织：
 
 目标：发现真正的BUG，减少噪音
 
-<img src="./assets/image-20260304201615641.png" alt="image-20260304201615641" style="zoom: 67%;" />
+<img src="./assets/meme_wtfs_per_minute.png" alt="meme_wtfs_per_minute" style="zoom: 67%;" />
 
 ### 三 推广
 
@@ -322,7 +312,7 @@ log/                     # 检视产出，按仓库和维度组织：
 2. Microsoft Research Czerwonka et al. 发现变更越大，review中发现缺陷的概率反而越低
 4. 一个互联网meme：
 
-     <img src="./assets/25aac130c87c3e60c036a2fe8ea600c9.jpg" style="zoom:50%;" />
+     <img src="./assets/meme_review_lines.jpg" style="zoom:50%;" />
 
 这里就引入了一个有趣的矛盾：人工review小PR效果好（因为注意力集中），但AI review小PR成本不划算（因为固定开销摊不薄）。这其实说明AI和人的review特性不同，人的瓶颈是注意力，大PR会疲劳遗漏；AI的瓶颈是启动成本，小PR浪费算力。
 
@@ -350,7 +340,7 @@ log/                     # 检视产出，按仓库和维度组织：
 
 沟通约定：请通过issue以异步方式进行交流，拒绝微信办公。
 
-<img src="./assets/20210801111018892.jpg" alt="img" style="zoom:33%;" />
+<img src="./assets/meme_dame.jpg" alt="img" style="zoom:33%;" />
 
 ## 延伸阅读
 
