@@ -4028,19 +4028,16 @@ def _main_pr_review(repo: RepoConfig, args: argparse.Namespace, token: str, save
     prs = collect_prs(repo, token, args)
     print(f"  {_dim(f'耗时：{_fmt_secs(time.monotonic() - t0)}')}")
 
-    # 批量模式下跳过标题含 [WIP] 的 PR（--pr 精确模式不过滤）
+    # 批量模式下只扫描标题含 [pls] 的 PR（--pr 精确模式不过滤）
     if not args.pr:
-        filtered = []
-        for pr in prs:
-            if "wip" in pr.get("title", "").lower():
-                pr_num = pr["number"]
-                print(f"  {_skip(f'PR #{pr_num} 标题含 WIP，跳过')}")
-            else:
-                filtered.append(pr)
-        prs = filtered
+        total = len(prs)
+        prs = [pr for pr in prs if "pls" in pr.get("title", "").lower()]
+        skipped = total - len(prs)
+        if skipped:
+            print(f"  {_skip(f'共 {total} 个 PR，{skipped} 个标题不含 pls，跳过')}")
 
     if not prs:
-        print(f"  {_warn('未找到匹配的 PR，退出。')}")
+        print(f"  {_warn('未找到标题含 pls 的 PR，退出。')}")
         sys.exit(0)
 
     # 按变更规模升序排列（短任务优先，减少总等待时间）
