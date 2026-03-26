@@ -296,6 +296,19 @@ class ReviewStats:
             parts.append(f"{_fmt_secs(self.duration_ms / 1000)} (API)")
         return " | ".join(parts) if parts else "无统计数据"
 
+    def fmt_cost_cell(self) -> str:
+        """格式化为表格单元格：45.2s · 12,345 tokens · ¥0.89 ($0.12)"""
+        parts = []
+        if self.duration_ms > 0:
+            parts.append(_fmt_secs(self.duration_ms / 1000))
+        total = self.total_tokens
+        if total > 0:
+            parts.append(f"{total:,} tokens")
+        cost = self.best_cost
+        if cost > 0:
+            parts.append(f"¥{cost * USD_TO_CNY:.2f} (${cost:.2f})")
+        return " · ".join(parts) if parts else ""
+
 
 class _DirectOutput:
     """直接输出到 stdout 的流适配器（顺序模式使用），接口兼容 StringIO。"""
@@ -959,7 +972,11 @@ def fetch_pr_files(repo: RepoConfig, token: str, pr_number: int) -> list:
     if isinstance(data, list):
         return data
     # 兼容可能的嵌套格式
-    return data.get("files", data.get("data", []))
+    files = data.get("files", data.get("data", []))
+    if not files:
+        keys = list(data.keys())[:8]
+        print(f"  {_dim(f'API 返回非 list 且无 files/data key: {keys}')}")
+    return files
 
 
 # ======================== Diff 格式化 ========================
@@ -1797,7 +1814,8 @@ def run_claude_dir_review(file_paths: list[str], cwd: Path, max_retries: int = 2
 
 
 # ======================== 输出 ========================
-def write_review_md(repo: RepoConfig, pr: dict, review_text: str, output_dir: Path, head_sha: str = "") -> Path:
+def write_review_md(repo: RepoConfig, pr: dict, review_text: str, output_dir: Path,
+                    head_sha: str = "", stats: ReviewStats | None = None) -> Path:
     """将审查结果写入 markdown 文件。
 
     目录结构：log/<owner>/<repo>/pr_<number>/<sha>.md
@@ -1814,17 +1832,16 @@ def write_review_md(repo: RepoConfig, pr: dict, review_text: str, output_dir: Pa
 
     summary = _extract_issue_summary(review_text)
     summary_row = f"\n| 发现 | {summary} |" if summary else ""
+    cost_cell = stats.fmt_cost_cell() if stats else ""
+    cost_row = f"\n| 成本 | {cost_cell} |" if cost_cell else ""
 
     content = (
         f"# Code Review: PR #{pr_number}\n\n"
         f"| 属性 | 值 |\n"
         f"|------|------|\n"
-        f"| 标题 | {pr_title} |\n"
-        f"| 作者 | {author} |\n"
-        f"| 链接 | [{repo.url}/merge_requests/{pr_number}]({repo.url}/merge_requests/{pr_number}) |\n"
+        f"| PR | [{pr_title}]({repo.url}/merge_requests/{pr_number}) (`@{author}`) |\n"
         f"| 审查时间 | {now} |\n"
-        f"| 审查工具 | Claude Code (`vibe-review` skill) |\n"
-        f"| 基线提交 | {head_sha[:12]} |{summary_row}\n\n"
+        f"| 基线提交 | {head_sha[:12]} |{summary_row}{cost_row}\n\n"
         f"---\n\n"
         f"{review_text}\n"
     )
@@ -3008,12 +3025,20 @@ def _main_import_logs(repo: "RepoConfig", args: argparse.Namespace) -> None:
         review_timestamp = ""
         severity_summary = ""
 
-        title_m = re.search(r"\|\s*标题\s*\|\s*(.+?)\s*\|", content)
-        if title_m:
-            pr_title = title_m.group(1).strip()
-        author_m = re.search(r"\|\s*作者\s*\|\s*(.+?)\s*\|", content)
-        if author_m:
-            pr_author = author_m.group(1).strip()
+        # 新格式: | PR | [title](url) (`@author`) |  旧格式: | 标题 | ... | + | 作者 | ... |
+        pr_m = re.search(r"\|\s*PR\s*\|\s*(.+?)\s*\(`@(.+?)`\)\s*\|", content)
+        if pr_m:
+            raw = pr_m.group(1).strip()
+            link_m = re.match(r"\[(.+?)\]\(.+?\)", raw)
+            pr_title = link_m.group(1) if link_m else raw
+            pr_author = pr_m.group(2).strip()
+        else:
+            title_m = re.search(r"\|\s*标题\s*\|\s*(.+?)\s*\|", content)
+            if title_m:
+                pr_title = title_m.group(1).strip()
+            author_m = re.search(r"\|\s*作者\s*\|\s*(.+?)\s*\|", content)
+            if author_m:
+                pr_author = author_m.group(1).strip()
         sha_m = re.search(r"\|\s*基线提交\s*\|\s*(\w+)\s*\|", content)
         if sha_m:
             head_sha = sha_m.group(1).strip()
@@ -3101,7 +3126,7 @@ def _resolve_comment_url(resp: dict, repo: RepoConfig, token: str, pr_number: in
 
 def post_review_comment(repo: RepoConfig, token: str, pr_number: int, pr_title: str, author: str,
                         review_text: str, skip_delete: bool = False,
-                        head_sha: str = "") -> bool:
+                        head_sha: str = "", stats: ReviewStats | None = None) -> bool:
     """将审查结果发布为 PR 评论。先删除旧的 AI 评论，再发布新评论。返回是否成功。"""
     # 删除旧评论（inline 模式已提前删除，skip_delete=True 避免重复）
     if not skip_delete:
@@ -3112,17 +3137,14 @@ def post_review_comment(repo: RepoConfig, token: str, pr_number: int, pr_title: 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summary = _extract_issue_summary(review_text)
     summary_row = f"\n| 发现 | {summary} |" if summary else ""
+    cost_cell = stats.fmt_cost_cell() if stats else ""
+    cost_row = f"\n| 成本 | {cost_cell} |" if cost_cell else ""
 
     header = (
         f"{AI_REVIEW_MARKER}\n\n"
-        f"| 属性 | 值 |\n"
-        f"|------|------|\n"
-        f"| 标题 | {pr_title} |\n"
-        f"| 作者 | {author} |\n"
-        f"| 链接 | [{repo.url}/merge_requests/{pr_number}]({repo.url}/merge_requests/{pr_number}) |\n"
+        f"| PR | [{pr_title}]({repo.url}/merge_requests/{pr_number}) (`@{author}`) |\n"
         f"| 审查时间 | {now} |\n"
-        f"| 审查工具 | Claude Code (`vibe-review` skill) |\n"
-        f"| 基线提交 | {head_sha[:12]} |{summary_row}\n\n"
+        f"| 基线提交 | {head_sha[:12]} |{summary_row}{cost_row}\n\n"
         f"---\n\n"
     )
     sha_tag = f"\n<!-- REVIEWED_SHA:{head_sha} -->" if head_sha else ""
@@ -3159,22 +3181,22 @@ def post_review_comment(repo: RepoConfig, token: str, pr_number: int, pr_title: 
 def _post_review_comment_quiet(
     repo: RepoConfig, token: str, pr_number: int, pr_title: str, author: str,
     review_text: str, buf: io.StringIO, head_sha: str = "",
+    stats: ReviewStats | None = None,
 ) -> bool:
     """发布完整审查评论（不删除旧评论，日志输出到 buf）。供 inline 模式使用。"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summary = _extract_issue_summary(review_text)
     summary_row = f"\n| 发现 | {summary} |" if summary else ""
+    cost_cell = stats.fmt_cost_cell() if stats else ""
+    cost_row = f"\n| 成本 | {cost_cell} |" if cost_cell else ""
 
     header = (
         f"{AI_REVIEW_MARKER}\n\n"
         f"| 属性 | 值 |\n"
         f"|------|------|\n"
-        f"| 标题 | {pr_title} |\n"
-        f"| 作者 | {author} |\n"
-        f"| 链接 | [{repo.url}/merge_requests/{pr_number}]({repo.url}/merge_requests/{pr_number}) |\n"
+        f"| PR | [{pr_title}]({repo.url}/merge_requests/{pr_number}) (`@{author}`) |\n"
         f"| 审查时间 | {now} |\n"
-        f"| 审查工具 | Claude Code (`vibe-review` skill) |\n"
-        f"| 基线提交 | {head_sha[:12]} |{summary_row}\n\n"
+        f"| 基线提交 | {head_sha[:12]} |{summary_row}{cost_row}\n\n"
         f"---\n\n"
     )
     sha_tag = f"\n<!-- REVIEWED_SHA:{head_sha} -->" if head_sha else ""
@@ -3504,7 +3526,7 @@ def _review_single_pr(
             # 发布完整审查结果作为总结评论（已删除旧评论，跳过重复删除）
             posted = _post_review_comment_quiet(
                 repo, token, pr_number, pr_title, author, review_text, buf,
-                head_sha=head_sha)
+                head_sha=head_sha, stats=stats)
             if posted:
                 buf.write(f"  {_ok('总结评论发布成功')}\n")
             else:
@@ -3531,7 +3553,7 @@ def _review_single_pr(
                 if not posted:
                     buf.write(f"  {_warn('未能提取行内评论数据，回退到常规评论')}\n")
                     posted = post_review_comment(repo, token, pr_number, pr_title, author, review_text,
-                                                head_sha=head_sha)
+                                                head_sha=head_sha, stats=stats)
         else:
             # 常规评论（与 inline 路径一致：先删旧评论写入 buf，再用 quiet 版本发布）
             deleted = delete_old_review_comments(repo, token, pr_number)
@@ -3539,14 +3561,14 @@ def _review_single_pr(
                 buf.write(f"  {_dim(f'已删除 {deleted} 条旧的 AI 审查评论')}\n")
             posted = _post_review_comment_quiet(
                 repo, token, pr_number, pr_title, author, review_text, buf,
-                head_sha=head_sha)
+                head_sha=head_sha, stats=stats)
 
         buf.write(f"  {_dim(f'发布耗时：{_fmt_secs(time.monotonic() - t0)}')}\n")
 
     # 保存本地文件
     output_file = None
     if save_local:
-        output_file = write_review_md(repo, pr, review_text, output_dir, head_sha=head_sha)
+        output_file = write_review_md(repo, pr, review_text, output_dir, head_sha=head_sha, stats=stats)
         buf.write(f"  {_ok(f'审查结果已保存：{_file_link(output_file)}')}\n")
     elif not posted:
         # 不保存且未发布，输出到终端防止结果丢失
@@ -4028,16 +4050,23 @@ def _main_pr_review(repo: RepoConfig, args: argparse.Namespace, token: str, save
     prs = collect_prs(repo, token, args)
     print(f"  {_dim(f'耗时：{_fmt_secs(time.monotonic() - t0)}')}")
 
-    # 批量模式下只扫描标题含 [pls] 的 PR（--pr 精确模式不过滤）
+    # 批量模式下跳过不符合条件的 PR（--pr 精确模式不过滤）
     if not args.pr:
         total = len(prs)
-        prs = [pr for pr in prs if "pls" in pr.get("title", "").lower()]
-        skipped = total - len(prs)
-        if skipped:
-            print(f"  {_skip(f'共 {total} 个 PR，{skipped} 个标题不含 pls，跳过')}")
+        # GitCode API state 过滤不可靠，客户端侧二次校验
+        if args.state != "all":
+            prs = [pr for pr in prs if pr.get("state", "") == args.state]
+            state_skipped = total - len(prs)
+            if state_skipped:
+                print(f"  {_skip(f'共 {total} 个 PR，{state_skipped} 个状态非 {args.state}，跳过')}")
+        before_wip = len(prs)
+        prs = [pr for pr in prs if "wip" not in pr.get("title", "").lower()]
+        wip_skipped = before_wip - len(prs)
+        if wip_skipped:
+            print(f"  {_skip(f'{wip_skipped} 个标题含 wip，跳过')}")
 
     if not prs:
-        print(f"  {_warn('未找到标题含 pls 的 PR，退出。')}")
+        print(f"  {_warn('未找到待检视的 PR，退出。')}")
         sys.exit(0)
 
     # 按变更规模升序排列（短任务优先，减少总等待时间）
