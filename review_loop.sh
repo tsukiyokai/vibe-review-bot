@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 轻量轮询：每 60 秒检查一次 open PR 是否有新 push，有才跑 ai_reviewer.py
 # 用法：bash review_loop.sh [REPO] [TEAM_FILE]
-# 环境变量：REVIEW_TOKEN(必需) REVIEW_INTERVAL(默认120)
+# 环境变量：REVIEW_TOKEN(必需) REVIEW_INTERVAL(默认300)
 # 无变化时每轮只 1 次 API 调用，避免 ~200 次/轮的浪费
 
 set -euo pipefail
@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OWNER="cann"
 TOKEN="${REVIEW_TOKEN:?请设置环境变量 REVIEW_TOKEN}"
-INTERVAL="${REVIEW_INTERVAL:-120}"
+INTERVAL="${REVIEW_INTERVAL:-300}"
 REPO="${1:-hcomm}"
 TEAM_FILE="${2:-$SCRIPT_DIR/teams/hccl.txt}"
 
