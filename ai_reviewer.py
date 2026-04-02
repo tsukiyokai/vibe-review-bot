@@ -1558,6 +1558,7 @@ def _run_claude(prompt: str, cwd: Path, max_retries: int = 2, allowed_tools: lis
     """
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     env["CLAUDE_CODE_OUTPUT_STYLE"] = ""
+    env["TERM"] = "dumb"  # suppress status line cursor sequences (^[[D in WSL)
     stats = ReviewStats()
     for attempt in range(1, max_retries + 1):
         cmd = ["claude", "-p", "--output-format", "json", "--model", _review_model]
