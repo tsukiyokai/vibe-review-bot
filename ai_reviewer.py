@@ -951,10 +951,12 @@ def collect_prs(repo: RepoConfig, token: str, args: argparse.Namespace) -> list:
     return fetch_open_prs(repo, token, args.count, args.state)
 
 
-def fetch_pr_files(repo: RepoConfig, token: str, pr_number: int) -> list:
+def fetch_pr_files(repo: RepoConfig, token: str, pr_number: int) -> list | None:
     """获取 PR 的变更文件列表（含 patch diff）。
 
-    GitCode API 返回格式:
+    Returns [] for genuinely empty PR, None for API failure.
+
+    GitCode API format:
       [{
         "sha": "...", "filename": "path/to/file.cc",
         "additions": 5, "deletions": 3,
@@ -968,7 +970,7 @@ def fetch_pr_files(repo: RepoConfig, token: str, pr_number: int) -> list:
     """
     data = api_get(f"{repo.api_prefix}/pulls/{pr_number}/files", token)
     if data is None:
-        return []
+        return None
     if isinstance(data, list):
         return data
     # 兼容可能的嵌套格式
@@ -3382,9 +3384,13 @@ def _review_single_pr(
     files = fetch_pr_files(repo, token, pr_number)
     buf.write(f"  {_dim(f'耗时：{_fmt_secs(time.monotonic() - t0)}')}\n")
 
-    if not files:
-        buf.write(f"  {_warn('无变更文件或获取失败，跳过。')}\n")
+    if files is None:
+        buf.write(f"  {_warn('获取变更文件失败，跳过。')}\n")
         return PRResult(pr_number, pr_title, None, False, ReviewStats(), buf.getvalue(), success=False)
+
+    if not files:
+        buf.write(f"  {_dim('无变更文件 (+0/-0)，跳过。')}\n")
+        return PRResult(pr_number, pr_title, None, False, ReviewStats(), buf.getvalue(), skipped=True)
 
     cpp_count = sum(1 for f in files if is_cpp_file(get_filename(f)))
     total_adds = sum(f.get("additions", 0) for f in files)
@@ -3394,6 +3400,10 @@ def _review_single_pr(
     # 格式化 diff，判断是否需要分批
     cpp_files_list = [f for f in files if is_cpp_file(get_filename(f))]
     total_diff_chars = sum(len(get_file_diff(f) or "") for f in (cpp_files_list or files))
+
+    if total_diff_chars == 0:
+        buf.write(f"  {_dim('变更文件无 diff 内容 (+0/-0)，跳过。')}\n")
+        return PRResult(pr_number, pr_title, None, False, ReviewStats(), buf.getvalue(), skipped=True)
 
     if args.dry_run:
         # dry-run 模式：仅保存 diff 不审查
@@ -4078,7 +4088,7 @@ def _main_pr_review(repo: RepoConfig, args: argparse.Namespace, token: str, save
     if len(prs) > 1:
         print(f"  获取变更统计（用于排序）...")
         for pr in prs:
-            files = fetch_pr_files(repo, token, pr["number"])
+            files = fetch_pr_files(repo, token, pr["number"]) or []
             pr["_additions"] = sum(f.get("additions", 0) for f in files)
             pr["_deletions"] = sum(f.get("deletions", 0) for f in files)
             pr["_changed_files"] = len(files)
