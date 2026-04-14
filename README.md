@@ -201,58 +201,58 @@ log/                      # 检视产出，按仓库组织：
 
 ## todos
 
-- [x]创建vibe-review skill，基于CANN C++编码规范
-- [x]通过GitCode API自动拉取PR diff
-- [x]调用Claude Code vibe-review skill进行审查
-- [x]审查指定PR(--pr)
-- [x]按作者筛选PR(--author)
-- [x]审查结果发布为GitCode PR评论(--comment)
-- [x]发布前自动清理旧的AI评论
-- [x]审查结果保存到本地markdown(--save)
-- [x]审查结果最短长度校验，防止空报告
-- [x]支持已合并PR审查(--state merged)
-- [x]审查本地文件(--file)
-- [x]审查本地目录(--dir)
+- [x] 创建vibe-review skill，基于CANN C++编码规范
+- [x] 通过GitCode API自动拉取PR diff
+- [x] 调用Claude Code vibe-review skill进行审查
+- [x] 审查指定PR(--pr)
+- [x] 按作者筛选PR(--author)
+- [x] 审查结果发布为GitCode PR评论(--comment)
+- [x] 发布前自动清理旧的AI评论
+- [x] 审查结果保存到本地markdown(--save)
+- [x] 审查结果最短长度校验，防止空报告
+- [x] 支持已合并PR审查(--state merged)
+- [x] 审查本地文件(--file)
+- [x] 审查本地目录(--dir)
 - [x] log目录结构：by_pr / by_file / by_dir
 - [x] token消耗和耗时统计（成本监控）
-- [x]变更文件LOC显示(+/-)
-- [x]多PR并行审查
+- [x] 变更文件LOC显示(+/-)
+- [x] 多PR并行审查
 - [x] inline模式：逐行评论到GitCode代码行
-- [x]审查进度实时显示
-- [x]清除指定PR的AI评论(--clean)
+- [x] 审查进度实时显示
+- [x] 清除指定PR的AI评论(--clean)
 - [x] team.txt批量审查团队成员PR
-- [x]跳过标题含\[wip\]的PR
-- [x]短任务优先调度
-- [x]基于Claude官方定价的成本计算
-- [x]审查报告代码块语法高亮
-- [x]跨仓库审查(--repo)
-- [x]基于HEAD SHA防止重复检视
-- [x]强制重新审查(--force)
+- [x] 跳过标题含\[wip\]的PR
+- [x] 短任务优先调度
+- [x] 基于Claude官方定价的成本计算
+- [x] 审查报告代码块语法高亮
+- [x] 跨仓库审查(--repo)
+- [x] 基于HEAD SHA防止重复检视
+- [x] 强制重新审查(--force)
 - [x] review_loop.sh轮询守护脚本
-- [x]评论发布后输出GitCode链接
-- [x]轮询脚本失败自动恢复
-- [x]采纳率统计(--stats)
-- [x]检视意见追踪(--track)
-- [x]历史审查数据导入(--import-logs)
-- [x]行号范围格式统一(199-201)
+- [x] 评论发布后输出GitCode链接
+- [x] 轮询脚本失败自动恢复
+- [x] 采纳率统计(--stats)
+- [x] 检视意见追踪(--track)
+- [x] 历史审查数据导入(--import-logs)
+- [x] 行号范围格式统一(199-201)
 - [x] log目录按项目/仓库分层(log/cann/\<repo\>/)
-- [x]支持多个CANN仓库(hcomm、ops-transformer)
+- [x] 支持多个CANN仓库(hcomm、ops-transformer)
 - [x] vibe-review skill重构（渐进式加载、分层规范）
 - [x] GitHub托管与README
-- [x]项目重命名为vibe-review,skill重命名为vibe-review
+- [x] 项目重命名为vibe-review,skill重命名为vibe-review
 - [x] skill内容纳入仓库版本管理，添加setup.sh一键安装
 - [x] vibe-review skill提取为独立[npm包](https://www.npmjs.com/package/@tsukiyokai/vibe-review)（[GitHub](https://github.com/tsukiyokai/vibe-review-skill)）
-- [ ]支持Gitee V5 API
+- [ ] 支持Gitee V5 API
 - [ ] webhook打通（跑个HTTP server来接收GitCode的webhook请求，部署复杂度UP）。
-- [x]从hcomm仓库git历史挖掘HCCL高价值缺陷模式：分析全部428次提交，识别84次缺陷提交，逐条分析根因和修复模式，产出48条审查规则覆盖12个缺陷类别（算法正确性、并发、内存、整数溢出、错误处理、资源生命周期等）+ 6条跨类别系统性风险规则。规则已写入skill的references/standards-project-hccl.md -- 260302
-- [x]用上述方法完成ops-transformer代码仓分析，输出references/standards-project-ops-transformer.md -- 260303
+- [x] 从hcomm仓库git历史挖掘HCCL高价值缺陷模式：分析全部428次提交，识别84次缺陷提交，逐条分析根因和修复模式，产出48条审查规则覆盖12个缺陷类别（算法正确性、并发、内存、整数溢出、错误处理、资源生命周期等）+ 6条跨类别系统性风险规则。规则已写入skill的references/standards-project-hccl.md -- 260302
+- [x] 用上述方法完成ops-transformer代码仓分析，输出references/standards-project-ops-transformer.md -- 260303
 - [ ] cc管道模式和交互模式的效果差异分析
-- [ ]与CMC合作形成一套检视意见反馈skill的方法论
-- [ ]采纳率算法优化（存储上使用了Python标准库的sqlite3模块，主要用于PR审查的跟踪数据库(TRACKING_DB)；算法上因为diff追踪算法还没完全实现出来所以下图数据不算数）
+- [ ] 与CMC合作形成一套检视意见反馈skill的方法论
+- [ ] 采纳率算法优化（存储上使用了Python标准库的sqlite3模块，主要用于PR审查的跟踪数据库(TRACKING_DB)；算法上因为diff追踪算法还没完全实现出来所以下图数据不算数）
 
   ![screenshot_stats](./assets/screenshot_stats.png)
 
-- [ ]切内部模型
+- [ ] 切内部模型
 
 ## roadmap
 
